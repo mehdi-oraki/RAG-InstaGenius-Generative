@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Captivator Pro - Dynamic Caption Generator</title>
+<style>
+  :root {
+    --primary: #2F4F4F;
+    --secondary: #778899;
+    --accent: #6B8E23;
+  }
+  
+  body {
+    font-family: 'Arial', sans-serif;
+    max-width: 700px;
+    margin: 2em auto;
+    background: #f8f8ff;
+    padding: 0 1em;
+  }
+
+  .container {
+    background: white;
+    padding: 2em;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+
+  h1 {
+    color: var(--primary);
+    margin-bottom: 0.5em;
+  }
+
+  input, textarea {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border: 2px solid var(--secondary);
+    border-radius: 8px;
+    transition: border-color 0.3s;
+  }
+
+  input:focus, textarea:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
+
+  button {
+    background: var(--primary);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    transition: transform 0.2s, background 0.3s;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  button:hover {
+    transform: translateY(-2px);
+    background: var(--accent);
+  }
+
+  .caption-output {
+    background: #f0f8ff;
+    padding: 1.5em;
+    border-radius: 10px;
+    margin-top: 1.5em;
+  }
+
+  .advanced-settings {
+    margin: 1.5em 0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0.5em;
+  }
+
+  .settings-content {
+    padding: 1em;
+    background: #f9f9f9;
+    border-radius: 8px;
+    margin-top: 0.5em;
+  }
+
+  .slider-container {
+    margin: 1em 0;
+  }
+
+  .slider-container label {
+    display: block;
+    margin-bottom: 0.5em;
+    color: var(--primary);
+  }
+
+  .custom-lists textarea {
+    width: 100%;
+    height: 80px;
+    margin: 0.5em 0;
+    padding: 8px;
+  }
+
+  details[open] summary {
+    margin-bottom: 0.5em;
+  }
+
+  .progress-container {
+    margin: 1.5em 0;
+    background: #f0f0f0;
+    border-radius: 8px;
+    padding: 1em;
+  }
+
+  .progress-bar {
+    height: 8px;
+    background: var(--secondary);
+    border-radius: 4px;
+    margin-top: 0.5em;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+
+  .status-message {
+    margin-top: 0.5em;
+    font-size: 0.9em;
+    color: var(--primary);
+  }
+
+  .concept-insight {
+    background: #f5f9fc;
+    padding: 1.2em;
+    border-radius: 8px;
+    margin: 1em 0;
+    border-left: 4px solid var(--accent);
+    font-size: 0.95em;
+    line-height: 1.5;
+  }
+
+  .output-section {
+    margin-top: 1.5em;
+  }
+
+  .caption-item {
+    margin-bottom: 1.2em;
+    padding-bottom: 1.2em;
+    border-bottom: 1px dashed #ddd;
+  }
+
+  .caption-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .error-message {
+    color: #d9534f;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🎯 Captivator Pro</h1>
+  <p>Generate engaging social media captions with smart insights</p>
+
+  <label>Main Theme:</label>
+  <input type="text" id="phraseInput" placeholder="What's your main subject? (e.g. morning coffee)">
+
+  <label>Style/Vibe (optional):</label>
+  <textarea id="creativityInput" rows="2" placeholder="Describe your desired style (e.g. cozy winter mood)"></textarea>
+
+  <button onclick="generateCaptions()">✨ Generate Captions</button>
+
+  <details class="advanced-settings">
+    <summary>⚙️ Advanced Creativity Controls</summary>
+    <div class="settings-content">
+      <div class="slider-container">
+        <label>Creativity Level: <span id="imaginationValue">60</span>%</label>
+        <input type="range" id="imaginationSlider" min="0" max="100" value="60">
+      </div>
+
+      <div class="slider-container">
+        <label>Descriptiveness: <span id="sensoryValue">75</span>%</label>
+        <input type="range" id="sensorySlider" min="0" max="100" value="75">
+      </div>
+
+      <div class="custom-lists">
+        <label>Your Favorite Phrases:</label>
+        <textarea id="customStarters" placeholder="Add your go-to opening lines (comma-separated)"></textarea>
+        
+        <label>Your Descriptive Words:</label>
+        <textarea id="customSensory" placeholder="Add words you like to use (comma-separated)"></textarea>
+      </div>
+
+      <button onclick="savePreferences()" style="background: var(--accent)">💾 Save Preferences</button>
+    </div>
+  </details>
+
+  <div class="progress-container" id="progressContainer" hidden>
+    <div>Generating your content...</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="status-message" id="statusMessage"></div>
+  </div>
+
+  <div class="output-section">
+    <h2>Content Insight</h2>
+    <div class="concept-insight" id="conceptInsight">
+      Your personalized content analysis will appear here...
+    </div>
+
+    <h2>Top 3 Caption Options</h2>
+    <div class="caption-output" id="output">
+      <div class="loading">Your custom captions will appear here...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Instagram Integration Hook 
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('source') && urlParams.get('source') === 'instagram') {
+        const instaTheme = sessionStorage.getItem('instagramTheme');
+        if (instaTheme) {
+            document.getElementById('phraseInput').value = instaTheme;
+            setTimeout(() => {
+                generateCaptions(); // Auto-trigger generation
+            }, 500);
+        }
+    }
+});
+// ======================
+// CONFIGURATION & STATE
+// ======================
+const config = {
+  imaginationWeight: 60,
+  sensoryWeight: 75,
+  userStarters: [],
+  userSensory: [],
+  emojiMap: {
+    coffee: ["☕", "🌱", "🔥", "🫖"],
+    morning: ["🌅", "🌄", "🌇", "⏰"],
+    nature: ["🌿", "🍃", "🌸", "🌻"],
+    winter: ["❄️", "⛄", "🔥", "🧣"],
+    summer: ["🌞", "🏖️", "🍹", "🌊"],
+    food: ["🍴", "🍽️", "🥘", "🧆"],
+    travel: ["✈️", "🧳", "🗺️", "🌎"],
+    fitness: ["💪", "🏋️", "🧘", "🏃"]
+  }
+};
+
+// ======================
+// CONTENT ENGINE
+// ======================
+const contentEngine = {
+  get starters() {
+    return [...new Set([
+      "Just discovered something amazing...",
+      "Can we talk about how good this is?",
+      "Morning ritual unlocked:",
+      "The perfect way to enjoy...",
+      "Why I'll never skip this again:",
+      ...config.userStarters
+    ])];
+  },
+
+  get descriptiveWords() {
+    return [...new Set([
+      "comforting", "invigorating", "satisfying", "soothing", 
+      "energizing", "balanced", "fresh", "aromatic",
+      ...config.userSensory
+    ])];
+  },
+
+  callsToAction: [
+    "How do you like yours?",
+    "What's your favorite way?",
+    "Tag someone who'd love this!",
+    "Save this for later ↓",
+    "Double tap if you agree!",
+    "What would you add?"
+  ],
+
+  getContentInsight(phrase, styleGuide) {
+    const themes = this.detectThemes(phrase + " " + styleGuide);
+    const audience = this.suggestAudience(themes);
+    const bestUse = this.suggestBestUse(themes);
+    const visualTip = this.suggestVisual(themes);
+    
+    // Multiple variations for each component
+    const introVariations = [
+      `"${phrase}" ${styleGuide ? `with ${styleGuide} ` : ''}`,
+      `This ${styleGuide ? `${styleGuide} ` : ''}concept `,
+      `Your ${styleGuide ? `${styleGuide} ` : ''}theme `,
+      `Content about ${phrase} ${styleGuide ? `with ${styleGuide} ` : ''}`
+    ];
+    
+    const audienceVariations = [
+      `resonates with ${audience}`,
+      `connects well with ${audience}`,
+      `is perfect for ${audience}`,
+      `will appeal to ${audience}`
+    ];
+    
+    const useVariations = [
+      `Great for ${bestUse}`,
+      `Ideal for ${bestUse}`,
+      `Works well for ${bestUse}`,
+      `Perfect for ${bestUse}`
+    ];
+    
+    const tipVariations = [
+      `Try ${visualTip} for best results`,
+      `For maximum impact, use ${visualTip}`,
+      `We recommend ${visualTip}`,
+      `Best paired with ${visualTip}`
+    ];
+    
+    // Randomly select one from each category
+    const selectedIntro = this.getRandomElement(introVariations);
+    const selectedAudience = this.getRandomElement(audienceVariations);
+    const selectedUse = this.getRandomElement(useVariations);
+    const selectedTip = this.getRandomElement(tipVariations);
+    
+    // Combine with different sentence structures
+    const structures = [
+      `${selectedIntro}${selectedAudience}. ${selectedUse}. ${selectedTip}.`,
+      `${selectedIntro}${selectedUse} that ${selectedAudience}. ${selectedTip}.`,
+      `${selectedIntro}${selectedAudience} - ${selectedUse.toLowerCase()}. ${selectedTip}.`
+    ];
+    
+    return this.getRandomElement(structures);
+  },
+
+  detectThemes(text) {
+    const themes = [];
+    text = text.toLowerCase();
+    Object.keys(config.emojiMap).forEach(theme => {
+      if (text.includes(theme)) themes.push(theme);
+    });
+    return themes.length > 0 ? themes : ["general"];
+  },
+
+  suggestAudience(themes) {
+    const audiences = {
+      coffee: ["morning people", "remote workers", "coffee enthusiasts"],
+      morning: ["early risers", "productivity seekers", "busy professionals"],
+      nature: ["outdoor lovers", "wellness seekers", "environmentalists"],
+      winter: ["seasonal content creators", "holiday planners", "cozy lifestyle fans"],
+      summer: ["vacation planners", "adventure seekers", "outdoor entertainers"],
+      food: ["home cooks", "food bloggers", "culinary enthusiasts"],
+      travel: ["wanderlusters", "vacation planners", "adventure seekers"],
+      fitness: ["health-conscious individuals", "gym-goers", "wellness advocates"],
+      general: ["your target audience", "your followers", "your community"]
+    };
+    
+    const selected = [];
+    themes.forEach(t => {
+      if (audiences[t]) {
+        selected.push(this.getRandomElement(audiences[t]));
+      }
+    });
+    
+    if (selected.length === 0) return this.getRandomElement(audiences.general);
+    if (selected.length === 1) return selected[0];
+    return `${selected[0]} and ${selected[1]}`;
+  },
+
+  suggestBestUse(themes) {
+    const uses = {
+      coffee: ["daily content", "routine posts", "morning rituals"],
+      morning: ["motivational content", "productivity tips", "day-starter posts"],
+      nature: ["inspiration posts", "wellness content", "outdoor photography"],
+      winter: ["seasonal marketing", "holiday content", "cozy lifestyle posts"],
+      summer: ["lifestyle branding", "vacation content", "outdoor activity posts"],
+      food: ["recipe sharing", "food reviews", "cooking tutorials"],
+      travel: ["destination highlights", "travel tips", "adventure stories"],
+      fitness: ["progress updates", "workout tips", "health advice"],
+      general: ["general engagement", "community building", "brand awareness"]
+    };
+    
+    const selected = [];
+    themes.forEach(t => {
+      if (uses[t]) {
+        selected.push(this.getRandomElement(uses[t]));
+      }
+    });
+    
+    if (selected.length === 0) return this.getRandomElement(uses.general);
+    return this.getRandomElement(selected);
+  },
+
+  suggestVisual(themes) {
+    const visuals = {
+      coffee: ["close-up shots with steam", "overhead flat lays of your setup", "morning routine sequences"],
+      morning: ["soft natural lighting", "golden hour photography", "waking up time-lapses"],
+      nature: ["wide landscape compositions", "macro nature details", "outdoor adventure shots"],
+      winter: ["warm contrasting colors", "cozy indoor scenes", "seasonal decor close-ups"],
+      summer: ["bright saturated tones", "outdoor activity shots", "sunny landscape photos"],
+      food: ["overhead flat lays", "ingredient preparation shots", "finished dish close-ups"],
+      travel: ["rule-of-thirds framing", "landmark compositions", "local culture snapshots"],
+      fitness: ["action shots", "progress comparison photos", "form demonstration videos"],
+      general: ["clean, well-lit images", "consistent color schemes", "focused compositions"]
+    };
+    
+    const selected = [];
+    themes.forEach(t => {
+      if (visuals[t]) {
+        selected.push(this.getRandomElement(visuals[t]));
+      }
+    });
+    
+    if (selected.length === 0) return this.getRandomElement(visuals.general);
+    return this.getRandomElement(selected);
+  },
+
+  getRandomElement(arr) {
+    return arr[Math.floor(Math.random() * arr.length)] || "";
+  }
+};
+
+// ======================
+// PROGRESS INDICATOR
+// ======================
+function updateProgress(percent, message) {
+  const progressFill = document.getElementById('progressFill');
+  const statusMessage = document.getElementById('statusMessage');
+  const progressContainer = document.getElementById('progressContainer');
+  
+  progressContainer.hidden = false;
+  progressFill.style.width = `${percent}%`;
+  statusMessage.textContent = message;
+}
+
+// ======================
+// CORE FUNCTIONALITY
+// ======================
+async function generateCaptions() {
+  const phrase = document.getElementById("phraseInput").value.trim();
+  const styleGuide = document.getElementById("creativityInput").value.trim();
+  const output = document.getElementById("output");
+  const conceptInsight = document.getElementById("conceptInsight");
+
+  if (!phrase) {
+    output.innerHTML = '<div class="error-message">Please enter a main theme to begin</div>';
+    conceptInsight.textContent = "Enter your main theme to get personalized insights";
+    return;
+  }
+
+  output.innerHTML = '<div class="loading">Creating your custom captions...</div>';
+  conceptInsight.textContent = "Analyzing your content theme...";
+  
+  try {
+    updateProgress(10, `Processing: "${phrase}"`);
+    if(styleGuide) updateProgress(15, `Adding style: "${styleGuide}"`);
+
+    // Find related words
+    updateProgress(25, "Finding related concepts...");
+    const baseWords = await fetchRelatedWords(phrase, 20);
+    updateProgress(40, `Found ${baseWords.length} related terms`);
+
+    // Process style guide if provided
+    let styleWords = [];
+    if(styleGuide) {
+      updateProgress(45, "Analyzing style guide...");
+      styleWords = await fetchRelatedWords(styleGuide, 15);
+      updateProgress(55, `Found ${styleWords.length} style terms`);
+    }
+
+    // Combine concepts
+    updateProgress(60, "Combining elements...");
+    const combinedWords = [...new Set([...baseWords, ...styleWords])];
+
+    // Generate content insight (will be different each time)
+    updateProgress(70, "Creating content analysis...");
+    conceptInsight.textContent = contentEngine.getContentInsight(phrase, styleGuide);
+
+    // Generate captions
+    updateProgress(85, "Crafting your captions...");
+    await delay(500);
+    
+    const themes = contentEngine.detectThemes(phrase + " " + styleGuide);
+    const emojis = themes.flatMap(theme => config.emojiMap[theme] || []);
+    
+    let captionsHTML = '';
+    for(let i = 0; i < 3; i++) {
+      const template = selectTemplate();
+      const caption = enrichCaption(template, {
+        phrase,
+        idea: getRandomElement(combinedWords),
+        emoji: getRandomElement(emojis),
+        starter: shouldUseImagination() ? getRandomElement(contentEngine.starters) : "",
+        sensory: shouldUseSensory() ? getRandomElement(contentEngine.descriptiveWords) : "",
+        cta: getRandomElement(contentEngine.callsToAction)
+      });
+      captionsHTML += `<div class="caption-item">${caption}</div>`;
+    }
+
+    updateProgress(100, "Done!");
+    await delay(300);
+    
+    output.innerHTML = captionsHTML;
+    document.getElementById('progressContainer').hidden = true;
+  } catch (error) {
+    updateProgress(100, `Error: ${error.message}`);
+    output.innerHTML = `<div class="error-message">Error generating captions: ${error.message}</div>`;
+    conceptInsight.textContent = "Couldn't generate insights due to error";
+    await delay(2000);
+    document.getElementById('progressContainer').hidden = true;
+  }
+}
+
+// ======================
+// SUPPORT FUNCTIONS
+// ======================
+async function fetchRelatedWords(term, max=20) {
+  if (!term) return [];
+  const response = await fetch(`https://api.datamuse.com/words?ml=${encodeURIComponent(term)}&max=${max}`);
+  const data = await response.json();
+  return data.map(item => item.word).filter(w => w.length > 2);
+}
+
+function selectTemplate() {
+  const baseTemplates = [
+    "{emoji} {starter} {phrase} with {sensory} {idea}",
+    "{emoji} {phrase} perfected: {sensory} {idea}",
+    "{starter} {emoji} {phrase} meets {idea}"
+  ];
+
+  const enhancedTemplates = [
+    "{starter} {emoji} {sensory} {phrase} with {idea} {cta}",
+    "✨ {phrase} reimagined: {sensory} {idea} {cta}",
+    "{emoji} {starter} {sensory} take on {phrase} {cta}"
+  ];
+
+  return shouldUseImagination() 
+    ? getRandomElement(enhancedTemplates)
+    : getRandomElement(baseTemplates);
+}
+
+function enrichCaption(template, context) {
+  return template.replace(/{(\w+)}/gi, (_, key) => context[key] || "");
+}
+
+function getRandomElement(arr) {
+  return arr[Math.floor(Math.random() * arr.length)] || "";
+}
+
+function shouldUseImagination() {
+  return Math.random() < (config.imaginationWeight / 100);
+}
+
+function shouldUseSensory() {
+  return Math.random() < (config.sensoryWeight / 100);
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ======================
+// USER PREFERENCES
+// ======================
+function loadPreferences() {
+  const saved = localStorage.getItem('captionPreferences');
+  if (saved) {
+    const preferences = JSON.parse(saved);
+    config.imaginationWeight = preferences.imagination;
+    config.sensoryWeight = preferences.sensory;
+    config.userStarters = preferences.starters;
+    config.userSensory = preferences.sensoryWords;
+    
+    document.getElementById('imaginationSlider').value = preferences.imagination;
+    document.getElementById('sensorySlider').value = preferences.sensory;
+    document.getElementById('customStarters').value = preferences.starters.join(', ');
+    document.getElementById('customSensory').value = preferences.sensoryWords.join(', ');
+    updateSliderDisplay();
+  }
+}
+
+function savePreferences() {
+  config.userStarters = document.getElementById('customStarters').value
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  
+  config.userSensory = document.getElementById('customSensory').value
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  localStorage.setItem('captionPreferences', JSON.stringify({
+    imagination: config.imaginationWeight,
+    sensory: config.sensoryWeight,
+    starters: config.userStarters,
+    sensoryWords: config.userSensory
+  }));
+}
+
+// ======================
+// UI UTILITIES
+// ======================
+function updateSliderDisplay() {
+  document.getElementById('imaginationValue').textContent = config.imaginationWeight;
+  document.getElementById('sensoryValue').textContent = config.sensoryWeight;
+}
+
+// ======================
+// INITIALIZATION
+// ======================
+window.addEventListener('load', () => {
+  loadPreferences();
+  
+  document.getElementById('imaginationSlider').addEventListener('input', (e) => {
+    config.imaginationWeight = e.target.value;
+    updateSliderDisplay();
+  });
+
+  document.getElementById('sensorySlider').addEventListener('input', (e) => {
+    config.sensoryWeight = e.target.value;
+    updateSliderDisplay();
+  });
+  updateSliderDisplay();
+});
+</script>
+</body>
+</html>
