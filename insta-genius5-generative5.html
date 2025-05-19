@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>🎯 Captivator Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; background: #fafbfc; margin: 0; padding: 0; }
+        .container { max-width: 540px; margin: 30px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px #eee; padding: 32px 28px; }
+        h1 { text-align: center; color: #1d3557; }
+        label { display: block; margin-top: 18px; font-weight: bold; }
+        input[type="text"], input[type="range"] { width: 100%; padding: 8px; margin-top: 6px; border-radius: 5px; border: 1px solid #ddd; }
+        .slider-label { display: flex; justify-content: space-between; margin-top: 8px; }
+        button, .btn { background: #457b9d; color: #fff; border: none; padding: 10px 18px; border-radius: 5px; margin-top: 18px; cursor: pointer; font-size: 1em; }
+        button:disabled { background: #bfc9d1; cursor: not-allowed; }
+        .section { margin-top: 30px; }
+        .caption-list { margin-top: 16px; }
+        .caption-item { background: #f1f8fc; border-radius: 7px; padding: 18px 16px; margin-bottom: 16px; position: relative; }
+        .caption-actions { margin-top: 10px; }
+        .accepted { border: 2px solid #38b000; background: #e5fbe5; }
+        .user-feedback { margin-top: 10px; width: 100%; padding: 7px; border-radius: 5px; border: 1px solid #bbb; }
+        .feedback-submit { margin-top: 8px; background: #f77f00; }
+        .regenerating { color: #555; font-size: 0.95em; margin-top: 8px; }
+        .insight-tip { margin-bottom: 8px; }
+        .caption-text { margin-bottom: 4px; }
+        .loading { color: #888; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Captivator Pro</h1>
+        <p style="text-align:center;">Generate engaging, human-like captions with smart, actionable insights</p>
+        
+        <div class="section">
+            <label for="main-theme">Main Theme:</label>
+            <input type="text" id="main-theme" placeholder="e.g. Savory Green Tea, Silk bodysuit">
+
+            <label for="user-paraphrase">Your Paraphrase (comma separated, optional):</label>
+            <input type="text" id="user-paraphrase" placeholder="e.g. Oriental Magic, luxurious second skin">
+
+            <label for="style-vibe">Style/Vibe (optional):</label>
+            <input type="text" id="style-vibe" placeholder="e.g. Fun, Motivational">
+
+            <button id="generate-btn">✨ Generate Captions</button>
+        </div>
+
+        <div class="section">
+            <h3>⚙️ Advanced Creativity Controls</h3>
+            <div>
+                <div class="slider-label">
+                    <span>Creativity Level:</span>
+                    <span id="creativity-value">60</span>
+                </div>
+                <input type="range" min="0" max="100" value="60" id="creativity-slider">
+            </div>
+            <div>
+                <div class="slider-label">
+                    <span>Descriptiveness:</span>
+                    <span id="descriptiveness-value">75</span>
+                </div>
+                <input type="range" min="0" max="100" value="75" id="descriptiveness-slider">
+            </div>
+            <label for="fav-phrases">Your Favorite Phrases:</label>
+            <input type="text" id="fav-phrases" placeholder="Comma separated">
+
+            <label for="desc-words">Your Descriptive Words:</label>
+            <input type="text" id="desc-words" placeholder="Comma separated">
+
+            <button id="save-prefs-btn" class="btn">💾 Save Preferences</button>
+        </div>
+
+        <div class="section" id="generating-section" style="display:none;">
+            <p class="loading">Generating your content...</p>
+        </div>
+
+        <div class="section" id="insight-section" style="display:none;">
+            <h3>Content Insight</h3>
+            <div id="content-insight"></div>
+        </div>
+
+        <div class="section" id="captions-section" style="display:none;">
+            <h3>Top 3 Caption Options</h3>
+            <div class="caption-list" id="caption-list">
+                <!-- Captions will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Human-like, context-aware templates
+        const templates = [
+            "There’s something magical about {phrase}-it turns every sip into a journey.",
+            "Savoring {phrase}: pure tranquility in a cup.",
+            "Today’s mood: {phrase}. Who else loves this ritual?",
+            "Let the {phrase} awaken your senses and spirit.",
+            "Every cup of {phrase} is a taste of tradition and wonder.",
+            "Wrapped in the comfort of {phrase}, every moment feels special.",
+            "Discover the secret behind {phrase}-a blend of flavor and feeling.",
+            "Nothing says self-care like a cup of {phrase}.",
+            "Start your day with {phrase} and a spark of inspiration.",
+            "When life calls for a pause, {phrase} is my answer."
+        ];
+
+        // Helper: fetch brainstormed words from Datamuse
+        async function getDatamuseWords(phrase) {
+            const mlRes = await fetch(`https://api.datamuse.com/words?ml=${encodeURIComponent(phrase)}&max=5`);
+            const synRes = await fetch(`https://api.datamuse.com/words?rel_syn=${encodeURIComponent(phrase)}&max=3`);
+            const adjRes = await fetch(`https://api.datamuse.com/words?rel_jjb=${encodeURIComponent(phrase)}&max=3`);
+            const mlWords = await mlRes.json();
+            const synWords = await synRes.json();
+            const adjWords = await adjRes.json();
+            // Collect unique words, prioritize user phrase itself
+            const brainstormWords = [
+                phrase,
+                ...new Set([
+                    ...mlWords.map(w => w.word),
+                    ...synWords.map(w => w.word),
+                    ...adjWords.map(w => w.word)
+                ])
+            ].filter(Boolean);
+            return brainstormWords;
+        }
+
+        // Main caption generator: async because of Datamuse
+        async function generateBrainstormedCaptions(mainTheme, userParaphrases) {
+            // Get user paraphrases or default to main theme
+            let paraphraseArr = userParaphrases
+                ? userParaphrases.split(',').map(p => p.trim()).filter(Boolean)
+                : [];
+            if (paraphraseArr.length === 0) paraphraseArr = [mainTheme];
+
+            // Fetch brainstormed words for each phrase
+            let brainstormPools = await Promise.all(paraphraseArr.map(getDatamuseWords));
+            // Flatten, deduplicate, and filter out empty
+            let brainstormWords = [...new Set(brainstormPools.flat().filter(Boolean))];
+
+            // Shuffle for variety
+            brainstormWords = brainstormWords.sort(() => Math.random() - 0.5);
+
+            let usedTemplates = templates.slice();
+            let captions = [];
+            let usedPhrases = new Set();
+
+            while (captions.length < 3 && brainstormWords.length && usedTemplates.length) {
+                let phrase = brainstormWords.shift();
+                // Avoid repeating the same phrase in the batch
+                if (usedPhrases.has(phrase.toLowerCase())) continue;
+                usedPhrases.add(phrase.toLowerCase());
+
+                // Pick a template at random, remove to avoid repeats
+                let tIdx = Math.floor(Math.random() * usedTemplates.length);
+                let template = usedTemplates.splice(tIdx, 1)[0];
+
+                // Compose the caption
+                let caption = template.replace("{phrase}", phrase);
+                // Quality check: must be a mature, full sentence (basic check)
+                if (caption.split(' ').length > 5 && /[.!?]$/.test(caption.trim())) {
+                    captions.push(caption);
+                } else {
+                    // If not, try again with another phrase/template
+                    usedTemplates.push(template);
+                }
+            }
+            // If not enough, fill with mainTheme as phrase
+            while (captions.length < 3 && usedTemplates.length) {
+                let tIdx = Math.floor(Math.random() * usedTemplates.length);
+                let template = usedTemplates.splice(tIdx, 1)[0];
+                let caption = template.replace("{phrase}", mainTheme);
+                captions.push(caption);
+            }
+            return captions;
+        }
+
+        // Improved, emotionally engaging Content Insight
+        function generateContentInsight(mainTheme) {
+            const facts = [
+                {
+                    keywords: ["tea", "green tea", "savory green tea", "matcha", "sencha"],
+                    text: [
+                        "Savory green tea is more than a drink-it's a calming ritual, steeped in centuries of tradition and mystique.",
+                        "From ancient ceremonies to modern moments, green tea brings tranquility and balance to every day.",
+                        "A cup of green tea is a taste of history, culture, and wellness in every sip."
+                    ]
+                },
+                {
+                    keywords: ["silk bodysuit", "bodysuit", "silk"],
+                    text: [
+                        "A silk bodysuit is the ultimate blend of luxury and comfort, making every day feel special.",
+                        "Slip into a silk bodysuit and experience effortless elegance, softness, and confidence."
+                    ]
+                },
+            ];
+            let theme = mainTheme.trim().toLowerCase();
+            for (let entry of facts) {
+                if (entry.keywords.some(kw => theme.includes(kw))) {
+                    return entry.text[Math.floor(Math.random() * entry.text.length)];
+                }
+            }
+            // Universal fallback
+            const templates = [
+                `“${mainTheme}” isn’t just a word-it’s a feeling, a memory, and a spark of joy. Celebrate it!`,
+                `There's something truly special about "${mainTheme}"-it brings stories, dreams, and creativity to life.`,
+                `No matter where you are, "${mainTheme}" has the power to connect and inspire.`,
+                `“${mainTheme}” is a source of inspiration and wonder for people everywhere.`
+            ];
+            return templates[Math.floor(Math.random() * templates.length)];
+        }
+
+        // DOM elements
+        const generateBtn = document.getElementById('generate-btn');
+        const generatingSection = document.getElementById('generating-section');
+        const captionsSection = document.getElementById('captions-section');
+        const captionList = document.getElementById('caption-list');
+        const insightSection = document.getElementById('insight-section');
+        const contentInsight = document.getElementById('content-insight');
+        const creativitySlider = document.getElementById('creativity-slider');
+        const creativityValue = document.getElementById('creativity-value');
+        creativitySlider.oninput = () => creativityValue.textContent = creativitySlider.value;
+        const descriptivenessSlider = document.getElementById('descriptiveness-slider');
+        const descriptivenessValue = document.getElementById('descriptiveness-value');
+        descriptivenessSlider.oninput = () => descriptivenessValue.textContent = descriptivenessSlider.value;
+
+        // Generate captions handler
+        generateBtn.onclick = async function() {
+            let mainTheme = document.getElementById('main-theme').value.trim();
+            let userParaphrase = document.getElementById('user-paraphrase').value.trim();
+            if (!mainTheme) {
+                alert('Please enter the main theme!');
+                return;
+            }
+            generatingSection.style.display = 'block';
+            captionsSection.style.display = 'none';
+            insightSection.style.display = 'none';
+            captionList.innerHTML = '';
+
+            // Generate captions using Datamuse brainstorm
+            let captions = await generateBrainstormedCaptions(mainTheme, userParaphrase);
+
+            generatingSection.style.display = 'none';
+            renderCaptions(captions);
+            contentInsight.innerHTML = generateContentInsight(mainTheme);
+            insightSection.style.display = 'block';
+        };
+
+        // Render captions with Accept/Regenerate buttons
+        function renderCaptions(captions) {
+            captionsSection.style.display = 'block';
+            captionList.innerHTML = '';
+            captions.forEach((caption, idx) => {
+                let item = document.createElement('div');
+                item.className = 'caption-item';
+                item.innerHTML = `
+                    <div class="caption-text" id="caption-text-${idx}">${caption}</div>
+                    <div class="caption-actions" id="actions-${idx}">
+                        <button class="accept-btn" data-idx="${idx}">Accept</button>
+                        <button class="regenerate-btn" data-idx="${idx}">Regenerate</button>
+                    </div>
+                `;
+                captionList.appendChild(item);
+
+                // Accept button logic
+                item.querySelector('.accept-btn').onclick = function() {
+                    item.classList.add('accepted');
+                    this.disabled = true;
+                    item.querySelector('.regenerate-btn').disabled = true;
+                };
+
+                // Regenerate button logic
+                item.querySelector('.regenerate-btn').onclick = async function() {
+                    if (item.querySelector('.user-feedback')) return;
+
+                    let feedbackInput = document.createElement('input');
+                    feedbackInput.type = 'text';
+                    feedbackInput.placeholder = 'Suggest a new idea or feedback...';
+                    feedbackInput.className = 'user-feedback';
+
+                    let submitBtn = document.createElement('button');
+                    submitBtn.textContent = 'Submit Feedback';
+                    submitBtn.className = 'feedback-submit';
+
+                    let status = document.createElement('div');
+                    status.className = 'regenerating';
+
+                    submitBtn.onclick = async function() {
+                        let userOpinion = feedbackInput.value.trim();
+                        if (!userOpinion) {
+                            alert('Please enter your feedback or idea!');
+                            return;
+                        }
+                        status.textContent = 'Regenerating...';
+                        submitBtn.disabled = true;
+                        feedbackInput.disabled = true;
+
+                        // Use feedback as a new paraphrase for brainstorm
+                        let newCaptions = await generateBrainstormedCaptions(userOpinion, userOpinion);
+                        item.querySelector('.caption-text').textContent = newCaptions[0];
+                        status.textContent = 'Caption updated!';
+                        setTimeout(() => {
+                            feedbackInput.remove();
+                            submitBtn.remove();
+                            status.remove();
+                        }, 1200);
+                    };
+
+                    item.appendChild(feedbackInput);
+                    item.appendChild(submitBtn);
+                    item.appendChild(status);
+                };
+            });
+        }
+
+        // Save preferences (optional, just a stub)
+        document.getElementById('save-prefs-btn').onclick = function() {
+            alert('Preferences saved!');
+        };
+    </script>
+</body>
+</html>
