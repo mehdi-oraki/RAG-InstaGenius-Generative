@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Captivator Pro - Universal Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6fb; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 32px; }
+        h1 { color: #3a3a6a; }
+        label { font-weight: 500; display: block; margin-top: 18px; }
+        input, textarea { width: 100%; padding: 10px; margin-top: 6px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1em; }
+        button { background: #6c63ff; color: #fff; border: none; padding: 12px 24px; border-radius: 6px; font-size: 1.1em; margin-top: 24px; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #5548c8; }
+        .output-section { margin-top: 36px; }
+        .caption-list { background: #f6f8ff; padding: 18px; border-radius: 8px; }
+        .caption-list li { margin-bottom: 10px; }
+        .summary { background: #e9f7ef; padding: 18px; border-radius: 8px; margin-top: 18px; }
+        .small { font-size: 0.95em; color: #888; margin-top: 8px; }
+        #loading { display: none; color: #6c63ff; font-weight: bold; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🎯 Captivator Pro <span class="small">(Universal Edition)</span></h1>
+    <p>Generate engaging, human-like captions with smart, actionable insights.<br>
+    <span class="small">All AI runs in your browser. No server. No downloads. No data leaves your device.</span></p>
+    <form id="captionForm">
+        <label for="mainTheme">Main Theme:</label>
+        <input type="text" id="mainTheme" placeholder="e.g. morning coffee, handmade carpet, urban art" required>
+
+        <label for="userSuggestions">Your Paraphrase (comma separated, optional):</label>
+        <input type="text" id="userSuggestions" placeholder="e.g. custom-made comfort, woven with love, fresh start">
+
+        <label for="styleVibe">Style/Vibe (optional):</label>
+        <input type="text" id="styleVibe" placeholder="e.g. cozy, elegant, bohemian, energetic">
+
+        <button type="submit">✨ Generate Captions</button>
+    </form>
+
+    <div id="loading">Generating captions... Please wait ⏳</div>
+
+    <div class="output-section" id="outputSection" style="display:none;">
+        <h2>Content Insight</h2>
+        <h3>Top 3 Caption Options</h3>
+        <ul class="caption-list" id="captionList"></ul>
+        <h3>Summary Conclusion</h3>
+        <div class="summary" id="summaryConclusion"></div>
+    </div>
+</div>
+
+<script>
+    // Universal, high-quality caption templates (can be replaced by any theme)
+    const universalTemplates = [
+        "Every [theme] is a reflection of [qualities] and [emotion].",
+        "Transform your [context] with a touch of [theme]—where [qualities] meets [emotion].",
+        "Let your [theme] be the start of a new [story] in your [context].",
+        "[theme]—crafted for those who appreciate [qualities] and [emotion].",
+        "Step into a world where [theme] brings [emotion] and [qualities] together.",
+        "Inspired by [source], this [theme] adds [qualities] to your [context].",
+        "Celebrate [qualities] and [emotion] every day with your [theme].",
+        "A [theme] that tells your [story]—unique, authentic, and full of [emotion].",
+        "Bring [qualities] and [emotion] into your [context] with [theme].",
+        "For those who value [qualities], a [theme] is more than just a [item]—it's a statement."
+    ];
+
+    // Synonyms and alternatives for dynamic, mature conclusions
+    const synonyms = {
+        craftsmanship: ["craftsmanship", "artistry", "mastery", "skill", "dedication"],
+        warmth: ["warmth", "comfort", "coziness", "embrace", "energy"],
+        authenticity: ["authenticity", "genuineness", "originality", "sincerity"],
+        beauty: ["beauty", "elegance", "charm", "grace", "splendor"],
+        story: ["story", "legacy", "heritage", "journey", "narrative"],
+        expression: ["expression", "manifestation", "reflection", "embodiment", "vision"],
+        emotion: ["joy", "inspiration", "wonder", "serenity", "delight"],
+        qualities: ["quality", "passion", "tradition", "creativity", "innovation"],
+        context: ["space", "home", "life", "routine", "collection"],
+        item: ["item", "creation", "piece", "work", "treasure"],
+        source: ["tradition", "nature", "modern life", "imagination", "heritage"],
+        creativity: ["creativity", "imagination", "originality", "resourcefulness", "vision"],
+        dedication: ["dedication", "commitment", "devotion", "perseverance", "focus"],
+        elegance: ["elegance", "grace", "refinement", "style", "sophistication"],
+        passion: ["passion", "enthusiasm", "zeal", "ardor", "energy"],
+        narrative: ["narrative", "story", "account", "tale", "chronicle"],
+        innovation: ["innovation", "progress", "novelty", "advancement", "modernity"]
+    };
+
+    function pick(arr) {
+        if (!Array.isArray(arr) || arr.length === 0) return '';
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    // Simulate brainstorming: blend user input with universal templates
+    function brainstormCaptions(theme, userSuggestions, styleVibe) {
+        let brainstorms = [];
+        if (userSuggestions) {
+            brainstorms = userSuggestions.split(',').map(s => s.trim()).filter(Boolean)
+                .map(s => `Inspired by: ${s}.`);
+        }
+        if (styleVibe) {
+            brainstorms = brainstorms.map(s => s + ` Styled for a ${styleVibe} vibe.`);
+        }
+        return brainstorms;
+    }
+
+    // Replace placeholders in templates with the user's theme and context
+    function adaptTemplate(template, theme, userSuggestions, styleVibe) {
+        // Infer context and item from theme, fallback to generic
+        let context = pick(synonyms.context);
+        let item = pick(synonyms.item);
+        let qualities = pick(synonyms.qualities) + " and " + pick(synonyms.craftsmanship);
+        let emotion = pick(synonyms.emotion);
+        let story = pick(synonyms.story);
+        let source = pick(synonyms.source);
+        // Allow user to override context with styleVibe or suggestions if present
+        if (styleVibe) context = styleVibe;
+        return template
+            .replace(/\[theme\]/g, theme)
+            .replace(/\[context\]/g, context)
+            .replace(/\[item\]/g, item)
+            .replace(/\[qualities\]/g, qualities)
+            .replace(/\[emotion\]/g, emotion)
+            .replace(/\[story\]/g, story)
+            .replace(/\[source\]/g, source);
+    }
+
+    // Simulate RAG: pick and adapt relevant captions from universal templates
+    function findRelevantCaptions(theme, userSuggestions, styleVibe) {
+        // Randomly pick 5 templates (simulates retrieval)
+        let shuffled = [...universalTemplates].sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, 5).map(template =>
+            adaptTemplate(template, theme, userSuggestions, styleVibe)
+        );
+    }
+
+    // Dynamic, mature, and unique conclusion generator
+    function generateDynamicConclusion(theme) {
+        const capitalizedTheme = theme.charAt(0).toUpperCase() + theme.slice(1);
+        // Several sentence templates for diversity
+        const templates = [
+            `${capitalizedTheme} is more than just ${pick(synonyms.item)}—it's a ${pick(synonyms.expression)} of ${pick(synonyms.craftsmanship)}, ${pick(synonyms.authenticity)}, and ${pick(synonyms.beauty)}.`,
+            `Choosing a ${theme} means embracing ${pick(synonyms.warmth)}, ${pick(synonyms.qualities)}, and a sense of ${pick(synonyms.story)} in your everyday life.`,
+            `Let your ${theme} be a daily reminder of the value of ${pick(synonyms.creativity)}, ${pick(synonyms.dedication)}, and personal ${pick(synonyms.expression)}.`,
+            `In every ${theme}, you'll discover ${pick(synonyms.elegance)}, ${pick(synonyms.passion)}, and a unique ${pick(synonyms.narrative)} to share.`,
+            `By welcoming a ${theme} into your ${pick(synonyms.context)}, you celebrate ${pick(synonyms.innovation)} and the timeless spirit of ${pick(synonyms.craftsmanship)}.`,
+            `Indeed, a ${theme} is a testament to the enduring power of ${pick(synonyms.authenticity)} and creative vision.`
+        ];
+        // Shuffle and pick 3-4 sentences for the conclusion
+        function shuffle(array) {
+            return array.sort(() => 0.5 - Math.random());
+        }
+        const shuffled = shuffle(templates);
+        const conclusionSentences = shuffled.slice(0, 3 + Math.floor(Math.random() * 2));
+        return conclusionSentences.join(" ");
+    }
+
+    document.getElementById('captionForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const mainTheme = document.getElementById('mainTheme').value.trim();
+        const userSuggestions = document.getElementById('userSuggestions').value.trim();
+        const styleVibe = document.getElementById('styleVibe').value.trim();
+
+        document.getElementById('outputSection').style.display = 'none';
+        document.getElementById('loading').style.display = 'block';
+
+        // Simulate brainstorm
+        let brainstorms = brainstormCaptions(mainTheme, userSuggestions, styleVibe);
+
+        // Simulate RAG
+        let relevantCaptions = findRelevantCaptions(mainTheme, userSuggestions, styleVibe);
+
+        // Combine, deduplicate, and pick top 3
+        let allCaptions = Array.from(new Set([...brainstorms, ...relevantCaptions])).filter(Boolean);
+        allCaptions = allCaptions.slice(0, 3);
+
+        // Dynamic, mature, and unique conclusion
+        let conclusion = generateDynamicConclusion(mainTheme);
+
+        // Display results
+        const captionList = document.getElementById('captionList');
+        captionList.innerHTML = '';
+        allCaptions.forEach(caption => {
+            const li = document.createElement('li');
+            li.textContent = caption;
+            captionList.appendChild(li);
+        });
+
+        document.getElementById('summaryConclusion').textContent = conclusion;
+        document.getElementById('outputSection').style.display = 'block';
+        document.getElementById('loading').style.display = 'none';
+    });
+</script>
+</body>
+</html>
